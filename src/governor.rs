@@ -1,4 +1,11 @@
 pub mod governor {
+    extern crate notify;
+    use notify::{watcher, RecursiveMode, Watcher};
+    use std::sync::mpsc::channel;
+    use std::sync::{Arc, Mutex};
+    use std::thread;
+    use std::time::Duration;
+
     use glob::glob;
     use std::fs;
     use std::io::{ErrorKind, Write};
@@ -9,8 +16,33 @@ pub mod governor {
     #[derive(Debug)]
     pub struct Governor {
         modes: Vec<String>,
+        current_mode: String,
     }
     impl Governor {
+        pub fn get_modes(&self) -> Vec<String> {
+            return self.modes.clone();
+        }
+        fn _get_current_mode() -> String {
+            // read the file `/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`
+            // and return the current governor
+            const FILE_PATH: &str = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor";
+            let mode_mutex = Arc::new(Mutex::new(String::new()));
+            let mode_mutex_clone = Arc::clone(&mode_mutex);
+            let read_thread = thread::spawn(move || {
+                let mut mode_val = mode_mutex_clone.lock().unwrap();
+                let contents = fs::read_to_string(FILE_PATH).unwrap().trim().to_string();
+                *mode_val = contents;
+            });
+            // let contents = fs::read_to_string(file_path).unwrap().trim().to_string();
+            read_thread.join().unwrap();
+            let mode = Arc::try_unwrap(mode_mutex).unwrap().into_inner().unwrap();
+            return mode;
+            // return mode;
+        }
+        pub fn get_current_mode(&self) -> String {
+            return self.current_mode.clone();
+        }
+
         pub fn new() -> Governor {
             // read the file `/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors`
             // and return a vector of governors
@@ -19,18 +51,8 @@ pub mod governor {
             let contents = fs::read_to_string(file_path).unwrap().trim().to_string();
             return Governor {
                 modes: contents.split(' ').map(|s| s.to_string()).collect(),
+                current_mode: Governor::_get_current_mode(),
             };
-        }
-        pub fn get_modes(&self) -> Vec<String> {
-            return self.modes.clone();
-        }
-        pub fn get_current_mode(&self) -> String {
-            // read the file `/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`
-            // and return the current governor
-            let file_path = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor";
-            // remove new line from the string
-            let contents = fs::read_to_string(file_path).unwrap().trim().to_string();
-            return contents;
         }
         fn write_mode(&self, path: String, mode: &str) {
             let source_list = fs::OpenOptions::new().write(true).open(path);

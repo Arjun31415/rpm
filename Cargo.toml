@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 glob = "*"
 clap = { version = "3.2", features = ["derive"] }
+notify = "4.0.17"
+
