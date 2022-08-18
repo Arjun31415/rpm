@@ -5,7 +5,6 @@ pub mod governor {
     use std::sync::{Arc, Mutex};
     use std::thread;
     use std::time::Duration;
-
     use glob::glob;
     use std::fs;
     use std::io::{ErrorKind, Write};
@@ -13,7 +12,7 @@ pub mod governor {
      * Governor struct which will handle the PC's governor
      *
      */
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Governor {
         modes: Vec<String>,
         current_mode: String,
@@ -21,6 +20,30 @@ pub mod governor {
     impl Governor {
         pub fn get_modes(&self) -> Vec<String> {
             return self.modes.clone();
+        }
+        fn _set_current_mode(&mut self, mode: String) {
+            self.current_mode = mode;
+        }
+
+        pub fn _subscribe_to_file(gov_mutex: &Arc<Mutex<Governor>>, file_path: &str) {
+            let (tx, rx) = channel();
+            let mut watcher = watcher(tx, Duration::from_millis(100)).unwrap();
+            watcher
+                .watch(file_path, RecursiveMode::NonRecursive)
+                .unwrap();
+            println!("Watching {}", file_path);
+            loop {
+                println!("Something: {:?}", rx.recv().unwrap());
+                match rx.recv() {
+                    Ok(event) => {
+                        println!("{:?}", event);
+                        let mut gov = gov_mutex.lock().unwrap();
+                        let mode = Self::_get_current_mode();
+                        gov._set_current_mode(mode);
+                    }
+                    Err(e) => println!("{:?}", e),
+                }
+            }
         }
         fn _get_current_mode() -> String {
             // read the file `/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`
@@ -33,11 +56,9 @@ pub mod governor {
                 let contents = fs::read_to_string(FILE_PATH).unwrap().trim().to_string();
                 *mode_val = contents;
             });
-            // let contents = fs::read_to_string(file_path).unwrap().trim().to_string();
             read_thread.join().unwrap();
             let mode = Arc::try_unwrap(mode_mutex).unwrap().into_inner().unwrap();
             return mode;
-            // return mode;
         }
         pub fn get_current_mode(&self) -> String {
             return self.current_mode.clone();
@@ -76,7 +97,7 @@ pub mod governor {
                 }
             }
         }
-        pub fn set_mode(&self, mode: String) {
+        pub fn set_governor_file_mode(&self, mode: String) {
             // write the mode to /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
             // using globs
             let file_path = "/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor";
