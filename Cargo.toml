@@ -9,4 +9,10 @@ edition = "2021"
 glob = "*"
 clap = { version = "3.2", features = ["derive"] }
 notify = "4.0.17"
+daemonize = "0.4.1"
+libc = "0.2.132"
+cfg-if = "1.0.0"
+env_logger = "0.9.0"
+log4rs = "1.1.1"
+log = "0.4.17"
 

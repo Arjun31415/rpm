@@ -4,14 +4,17 @@ use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 
 pub fn init() -> Result<(), ()> {
+    let path = "/tmp/log/rpm.log";
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d} {l} - {m}\n")))
-        .build("/var/log/rpm.log")
+        .build(path)
         .unwrap();
     let config = Config::builder()
         .appender(Appender::builder().build("logfile", Box::new(logfile)))
         .build(Root::builder().appender("logfile").build(LevelFilter::Info))
         .unwrap();
     log4rs::init_config(config).unwrap();
+    println!("Logger Initialized");
+    println!("Log file is at:\n{}", path);
     Ok(())
 }
