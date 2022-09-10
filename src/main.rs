@@ -33,7 +33,6 @@ fn main() {
     let gov_mutex = Arc::new(Mutex::new(Governor::new()));
     let gov_mutex_clone = Arc::clone(&gov_mutex);
 
-    // Governor::_get_current_mode_v2(temp);
     const FILE_PATH: &str = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor";
     thread::spawn(move || {
         Governor::_subscribe_to_file(&gov_mutex_clone, FILE_PATH);
