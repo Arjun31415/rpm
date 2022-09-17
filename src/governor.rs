@@ -1,13 +1,14 @@
 pub mod governor {
     extern crate notify;
-    use notify::{watcher, RecursiveMode, Watcher};
+    use glob::glob;
+    use notify::{Config, RecursiveMode, Watcher};
+    use std::fs;
+    use std::io::{ErrorKind, Write};
+    use std::path::Path;
     use std::sync::mpsc::channel;
     use std::sync::{Arc, Mutex};
     use std::thread;
     use std::time::Duration;
-    use glob::glob;
-    use std::fs;
-    use std::io::{ErrorKind, Write};
     /**
      * Governor struct which will handle the PC's governor
      *
@@ -26,22 +27,23 @@ pub mod governor {
         }
 
         pub fn _subscribe_to_file(gov_mutex: &Arc<Mutex<Governor>>, file_path: &str) {
-            let (tx, rx) = channel();
-            let mut watcher = watcher(tx, Duration::from_millis(100)).unwrap();
-            watcher
-                .watch(file_path, RecursiveMode::NonRecursive)
-                .unwrap();
+            let (tx, rx) = channel::<notify::Result<notify::Event>>();
+            let config = Config::default().with_poll_interval(Duration::from_millis(100));
+            // let mut watcher = watcher(tx, Duration::from_millis(100)).unwrap();
             println!("Watching {}", file_path);
+            let mut watcher = notify::INotifyWatcher::new(tx, config).unwrap();
+            watcher
+                .watch(Path::new(file_path), RecursiveMode::NonRecursive)
+                .unwrap();
             loop {
-                println!("Something: {:?}", rx.recv().unwrap());
                 match rx.recv() {
                     Ok(event) => {
-                        println!("{:?}", event);
+                        log::info!("{:?}", event);
                         let mut gov = gov_mutex.lock().unwrap();
                         let mode = Self::_get_current_mode();
                         gov._set_current_mode(mode);
                     }
-                    Err(e) => println!("{:?}", e),
+                    Err(e) => log::error!("{:?}", e),
                 }
             }
         }
@@ -104,7 +106,6 @@ pub mod governor {
             for entry in glob(file_path).expect("Failed to read glob pattern") {
                 match entry {
                     Ok(path) => {
-                        // println!("{:?}", path.display());
                         self.write_mode(path.display().to_string(), &mode);
                     }
                     Err(e) => println!("{:?}", e),

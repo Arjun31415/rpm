@@ -1,11 +1,11 @@
 use std::fs::File;
 use std::{ffi::CStr, mem, ptr, str};
 
+use crate::errno::errno;
+use crate::error::{Error, Result};
 use libc::_SC_PAGESIZE;
 use libc::{getpgid, sysconf, EINVAL, EPERM, ESRCH};
 use libc::{getpwuid_r, passwd};
-use crate::errno::errno;
-use crate::error::{Error, Result};
 
 /// This macro is used whenever we call a C function but
 /// strongly believe that it cannot cause any memory unsafety.
