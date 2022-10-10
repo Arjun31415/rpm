@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 glob = "*"
-clap = { version = "3.2", features = ["derive"] }
+clap = { version = "4.0", features = ["derive"] }
 notify = "5.0.0"
 daemonize = "0.4.1"
 libc = "0.2.133"
