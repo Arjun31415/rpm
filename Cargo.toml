@@ -10,7 +10,7 @@ glob = "*"
 clap = { version = "4.0", features = ["derive"] }
 notify = "5.0.0"
 daemonize = "0.4.1"
-libc = "0.2.137"
+libc = "0.2.138"
 cfg-if = "1.0.0"
 env_logger = "0.10.0"
 log4rs = "1.2.0"
